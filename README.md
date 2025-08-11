@@ -1,58 +1,77 @@
-# PyInstaller Extractor
+# PyAutoDump - Automated PyInstaller Extractor & Decompiler
 
-PyInstaller Extractor is a Python script to extract the contents of a PyInstaller generated executable file.
+`PyAutoDump` is an automated tool that builds upon the original **[pyinstxtractor](https://github.com/extremecoders-re/pyinstxtractor )**. While the original script extracts the contents of a PyInstaller executable, `PyAutoDump` automates the entire reverse-engineering workflow: **extraction, decompilation, and organization.**
 
-The header of the pyc files are automatically fixed so that a Python bytecode decompiler will recognize it. The script can run on both Python 2.x and 3.x. PyInstaller versions 2.0, 2.1, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 4.0, 4.1, 4.2, 4.3, 4.4, 4.5, 4.5.1, 4.6, 4.7, 4.8, 4.9, 4.10, 5.0, 5.0.1, 5.1, 5.2, 5.3, 5.4, 5.4.1, 5.5, 5.6, 5.6.1, 5.6.2, 5.7.0, 5.8.0, 5.9.0, 5.10.0, 5.10.1, 5.11.0, 5.12.0, 5.13.0, 5.13.1, 5.13.2, 6.0.0, 6.1.0, 6.2.0, 6.3.0, 6.4.0, 6.5.0, 6.6.0, 6.7.0, 6.8.0, 6.9.0, 6.10.0, 6.11.0, 6.11.1, 6.12.0, 6.13.0, 6.14.0 are [tested](https://github.com/pyinstxtractor/pyinstxtractor-test-binaries) & supported. Probably will work with other versions too.
+This project handles the tedious manual steps, providing you with the final source code in a clean output folder.
 
-This project was originally hosted on [SourceForge](https://sourceforge.net/projects/pyinstallerextractor/).
+## Core Technology
+
+This tool uses the original `pyinstxtractor.py` script as its extraction engine. It supports all versions that `pyinstxtractor` does, including PyInstaller versions 2.0 through 6.x and beyond.
+
+The key difference is the automation layer built on top.
+
+## Features
+
+-   **Fully Automated:** Runs the entire extraction and decompilation process with a single command.
+-   **Automatic Dependency Installation:** Installs the `decompyle3` decompiler automatically from `requirements.txt`.
+-   **User-Friendly File Selection:** Launches a native file dialog to select the target `.exe`.
+-   **Intelligent Decompilation:** Automatically finds all `.pyc` files and decompiles them using `decompyle3`.
+-   **Smart Version Check:** Warns you if your Python version doesn't match the one used to build the `.exe`.
+-   **Clean Output:** Organizes all recovered source code into a dedicated `output` folder and deletes temporary files.
 
 ## Usage
 
-The script can be run by passing the name of the exe as an argument.
+To run the script, simply execute `main.py` with the appropriate Python interpreter. It is highly recommended to use the same Python version that was used to build the executable.
 
-```
-$ python pyinstxtractor.py <filename>
-X:\>python pyinstxtractor.py <filename>
-```
+1.  Make sure `pyinstxtractor.py`, `main.py`, and `requirements.txt` are in the same directory.
+2.  Run the script from your command line:
 
-It is recommended to run the script in the same version of Python which was used to generate the executable. This is to prevent unmarshalling errors(if any) while extracting the PYZ archive.
+    ```bash
+    # If the .exe was built with Python 3.13
+    py -3.13 main.py
 
-## Example
+    # Or more generally
+    python main.py
+    ```
 
-```
-X:\> python pyinstxtractor.py test.exe
-[+] Processing dist\test.exe
-[+] Pyinstaller version: 2.1+
-[+] Python version: 36
-[+] Length of package: 5612452 bytes
-[+] Found 59 files in CArchive
+3.  A file dialog will appear. Select the `.exe` file you want to analyze.
+4.  The script will handle the rest.
+
+## Example Workflow
+
+Here is what a typical run looks like in your console.
+
+
+
+X:\pyautodump> py -3.13 main.py
+[+] Installing requirements...
+[+] Requirements are up to date.
+[+] Extracting YourApp.exe...
+[+] Processing C:/Users/YourUser/Documents/pyautodump/YourApp.exe
+[+] Pyinstaller version: 6.5.0
+[+] Python version: 3.13
+[+] Length of package: 44906671 bytes
+[+] Found 212 files in CArchive
 [+] Beginning extraction...please standby
-[+] Possible entry point: pyiboot01_bootstrap.pyc
-[+] Possible entry point: test.pyc
-[+] Found 133 files in PYZ archive
-[+] Successfully extracted pyinstaller archive: dist\test.exe
+[+] Possible entry point: main.pyc
+[+] Found 349 files in PYZ archive
+[+] Successfully extracted pyinstaller archive: C:/Users/YourUser/Documents/pyautodump/YourApp.exe
+[INFO] EXE requires Python 3.13. You are using Python 3.13.
+[+] Decompiling and moving source files to output\YourApp_source...
+[INFO] Decompilation finished: 361 succeeded, 0 failed.
+[+] Deleting temporary folder...
+[+] Cleanup successful.
+[+] SUCCESS! The source code is located in: output\YourApp_source
 
-You can now use a python decompiler on the pyc files within the extracted directory
-```
 
-After extracting the pyc's you can use a Python decompiler like [Uncompyle6](https://github.com/rocky/python-uncompyle6/) and [Decompyle++](https://github.com/zrax/pycdc).
-
-```
-X:\> uncompyle6.exe test.exe_extracted\test.pyc
-X:\> uncompyle6.exe test.exe_extracted\PYZ-00.pyz_extracted\__future__.pyc
-```
-## Extracting Linux ELF binaries
-
-Pyinstxtractor can natively extract Linux ELF binaries without requiring other tools.
-
-For other questions and information, please see the [Wiki](https://github.com/extremecoders-re/pyinstxtractor/wiki/Extracting-Linux-ELF-binaries) and the [FAQ](https://github.com/extremecoders-re/pyinstxtractor/wiki/Frequently-Asked-Questions)
+After the script finishes, the `output\YourApp_source` directory will contain all the recovered `.py` files, ready for inspection. You no longer need to run a decompiler manually.
 
 ## See also
 
-- [pyinstxtractor-ng](https://github.com/pyinstxtractor/pyinstxtractor-ng): 
-A standalone binary version of pyinstxtractor. This tool doesn't require Python to run and can extract all supported versions of PyInstaller. It also supports encrypted pyinstaller executables.
-- [pyinstxtractor-web](https://github.com/pyinstxtractor/pyinstxtractor-go): pyinstxtractor running in the web browser, powered by Go & GopherJS.
+For more information on the extraction core, see the original project:
 
-## License
+-   **[pyinstxtractor](https://github.com/extremecoders-re/pyinstxtractor )**: The original script this project is based on.
 
-GNU General Public License v3.0
+For dealing with encrypted executables, consider using:
+
+-   **[pyinstxtractor-ng](https://github.com/pyinstxtractor/pyinstxtractor-ng )**: A standalone binary version of pyinstxtractor that supports encrypted archives.
