@@ -8,7 +8,7 @@ This project handles the tedious manual steps, providing you with the final sour
 
 This tool uses the original `pyinstxtractor.py` script as its extraction engine. It supports all versions that `pyinstxtractor` does, including PyInstaller versions 2.0 through 6.x and beyond.
 
-The key difference is the automation layer built on top.
+The key difference is the automation layer built on top..
 
 ## Features
 
