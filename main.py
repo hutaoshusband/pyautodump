@@ -21,8 +21,8 @@
 #   1.  **Dependency Check:** It automatically checks for a `requirements.txt` file and installs
 #       the necessary Python packages (`decompyle3`) using pip.
 #
-#   2.  **File Selection:** The script launches a native OS file selection dialog, allowing the
-#       user to safely browse and select the target `.exe` file for analysis.
+#   2.  **File Selection:** The script allows selecting the target `.exe` file via CLI argument
+#       or launches a native OS file selection dialog if no argument is provided.
 #
 #   3.  **Extraction:** It uses the well-known `pyinstxtractor.py` script to unpack the contents
 #       of the PyInstaller executable. This process extracts all bundled files, including the
@@ -31,8 +31,8 @@
 #   4.  **Python Version Check & Decompiler Selection:** During extraction, the script intelligently
 #       detects the Python version (e.g., 3.8, 3.11, 3.13) used to build the original `.exe`.
 #       Based on this version, it automatically selects the appropriate decompiler:
-#         - **Python 3.13:** Switches to `pycdc.exe` for modern bytecode support.
-#         - **Other Versions:** Defaults to `decompyle3` for broad compatibility.
+#         - **Python >= 3.9:** Switches to `pycdc.exe` for modern bytecode support.
+#         - **Other Versions (< 3.9):** Defaults to `decompyle3` for broad compatibility.
 #
 #   5.  **Decompilation:** The script iterates through every extracted `.pyc` file and uses the
 #       selected decompiler to convert the Python bytecode back into human-readable source code.
@@ -55,8 +55,7 @@
 import subprocess
 import sys
 import os
-import tkinter as tk
-from tkinter import filedialog
+import argparse
 import re
 import shutil
 
@@ -67,7 +66,10 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 PYINST_PATH = os.path.join(os.path.dirname(__file__), "pyinstxtractor.py")
 
 # NEU: Pfad zum speziellen Dekompilierer für Python 3.13
-PYCDC_PATH = os.path.join(os.path.dirname(__file__), "Tools", "pycdc.exe")
+if sys.platform == "win32":
+    PYCDC_PATH = os.path.join(os.path.dirname(__file__), "Tools", "pycdc.exe")
+else:
+    PYCDC_PATH = os.path.join(os.path.dirname(__file__), "Tools", "pycdc")
 
 
 def check_requirements():
@@ -84,14 +86,23 @@ def check_requirements():
         print(f"[ERROR] Failed to install requirements: {e}")
         sys.exit(1)
 
-def select_exe():
-    """Opens a file dialog to select the EXE file."""
-    root = tk.Tk()
-    root.withdraw()
-    return filedialog.askopenfilename(
-        title="Select an EXE file to extract",
-        filetypes=[("Executable files", "*.exe")]
-    )
+def select_exe(input_file=None):
+    """Opens a file dialog to select the EXE file if not provided as argument."""
+    if input_file:
+        return input_file
+    
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        return filedialog.askopenfilename(
+            title="Select an EXE file to extract",
+            filetypes=[("Executable files", "*.exe")]
+        )
+    except ImportError:
+        print("[ERROR] Tkinter not found and no input file provided via CLI.")
+        return None
 
 def run_pyinstxtractor(exe_path):
     """
@@ -140,22 +151,46 @@ def decompile_and_move(extracted_dir, final_out_dir, python_version):
     decompiler_path = ""
     is_pycdc = False
 
-    # NEU: Logik zur Auswahl des Dekompilierers
-    if python_version == "3.13":
-        print("[INFO] Python 3.13 detected. Switching to pycdc decompiler.")
+    # Logic for Decompiler Selection
+    use_pycdc = False
+    
+    if python_version:
+        try:
+            # Parse version string (e.g. "3.13")
+            major, minor = map(int, python_version.split('.'))
+            
+            # Use pycdc for Python >= 3.9
+            if (major == 3 and minor >= 9) or major > 3:
+                use_pycdc = True
+        except ValueError:
+            print(f"[WARNING] Could not parse Python version '{python_version}'. Defaulting to pycdc for safety.")
+            use_pycdc = True
+    else:
+        # If version unknown, assume it might be new
+        use_pycdc = True
+
+    if use_pycdc:
+        print(f"[INFO] Python {python_version or 'unknown'} detected. Switching to pycdc decompiler.")
         decompiler_path = PYCDC_PATH
         is_pycdc = True
         if not os.path.exists(decompiler_path):
-            print(f"[ERROR] Python 3.13 decompiler not found at: {decompiler_path}")
-            print("[INFO] Please place 'pycdc.exe' in the 'Tools' subfolder.")
+            print(f"[ERROR] pycdc decompiler not found at: {decompiler_path}")
+            print(f"[INFO] Please place '{os.path.basename(PYCDC_PATH)}' in the 'Tools' subfolder.")
+            # Fallback to checking PATH? No, stay strict as per previous design but informative
             return False
     else:
-        print("[INFO] Using default 'decompyle3' decompiler.")
+        print(f"[INFO] Python {python_version} detected. Using 'decompyle3' decompiler.")
         scripts_dir = os.path.join(os.path.dirname(sys.executable), "Scripts")
         decompiler_path = os.path.join(scripts_dir, "decompyle3.exe")
+        # Handle cases where Scripts might not be in the path or different OS
+        if not os.path.exists(decompiler_path):
+             # Try finding it in path
+             decompiler_path = shutil.which("decompyle3")
 
-    if not is_pycdc and not os.path.exists(decompiler_path):
-        print(f"[ERROR] Default decompiler not found at: {decompiler_path}")
+    if not decompiler_path or not os.path.exists(decompiler_path):
+        print(f"[ERROR] Decompiler not found.")
+        if not is_pycdc:
+            print("Ensure decompyle3 is installed via requirements.txt")
         return False
 
     original_cwd = os.getcwd()
@@ -221,7 +256,11 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     check_requirements()
 
-    exe_file = select_exe()
+    parser = argparse.ArgumentParser(description="PyAutoDump - PyInstaller Extractor & Decompiler")
+    parser.add_argument("filename", nargs="?", help="Path to the .exe file")
+    args = parser.parse_args()
+
+    exe_file = select_exe(args.filename)
     if not exe_file:
         print("[INFO] No file selected. Exiting.")
         sys.exit(0)
@@ -241,4 +280,3 @@ if __name__ == "__main__":
         cleanup(extracted_folder)
     else:
         print("[ERROR] Extraction failed.")
-
