@@ -392,8 +392,8 @@ class PyInstArchive:
             if self.pymaj != sys.version_info.major or self.pymin != sys.version_info.minor:
                 print('[!] Warning: This script is running in a different Python version than the one used to build the executable.')
                 print('[!] Please run this script in Python {0}.{1} to prevent extraction errors during unmarshalling'.format(self.pymaj, self.pymin))
-                print('[!] Skipping pyz extraction')
-                return
+                print('[!] Attempting PYZ extraction anyway...')
+                # return
 
             (tocPosition, ) = struct.unpack('!i', f.read(4))
             f.seek(tocPosition, os.SEEK_SET)
