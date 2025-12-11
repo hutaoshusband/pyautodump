@@ -58,15 +58,15 @@ C:\Users\YourUser\Documents\pyautodump> dir
  Volume in drive C is Windows
  Directory of C:\Users\YourUser\Documents\pyautodump
 
-12/11/2025  02:30 AM    <DIR>          .
-12/11/2025  02:30 AM    <DIR>          ..
-12/11/2025  02:30 AM            35,149 LICENSE
-12/11/2025  02:30 AM             4,256 README.md
-12/11/2025  02:30 AM    <DIR>          Tests
-12/11/2025  02:30 AM    <DIR>          Tools
-12/11/2025  02:30 AM            12,750 main.py
-12/11/2025  02:30 AM            17,572 pyinstxtractor.py
-12/11/2025  02:30 AM                10 requirements.txt
+MM/DD/YYYY  HH:MM AM    <DIR>          .
+MM/DD/YYYY  HH:MM AM    <DIR>          ..
+MM/DD/YYYY  HH:MM AM            35,149 LICENSE
+MM/DD/YYYY  HH:MM AM             4,256 README.md
+MM/DD/YYYY  HH:MM AM    <DIR>          Tests
+MM/DD/YYYY  HH:MM AM    <DIR>          Tools
+MM/DD/YYYY  HH:MM AM            12,750 main.py
+MM/DD/YYYY  HH:MM AM            17,572 pyinstxtractor.py
+MM/DD/YYYY  HH:MM AM                10 requirements.txt
                5 File(s)         69,737 bytes
                4 Dir(s)  123,456,789,012 bytes free
 ```
