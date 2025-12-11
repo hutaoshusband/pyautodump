@@ -194,7 +194,7 @@ def decompile_and_move(extracted_dir, final_out_dir, python_version):
         return False
 
     original_cwd = os.getcwd()
-    success_count, fail_count = 0, 0
+    success_count, fail_count, partial_count = 0, 0, 0
 
     for root, _, files in os.walk(extracted_dir):
         for file in files:
@@ -212,6 +212,15 @@ def decompile_and_move(extracted_dir, final_out_dir, python_version):
                                 [decompiler_path, src_path],
                                 check=True, stdout=f_out, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='ignore'
                             )
+                        
+                        # Verify the content for pycdc (it might fail silently or output partial code)
+                        with open(target_py_path, 'r', encoding='utf-8') as f_check:
+                            content = f_check.read()
+                            if "decompile incomplete" in content or "Parse error" in content or "Unsupported opcode" in content:
+                                print(f"[WARNING] Partial decompilation for {file} (check file for errors).")
+                                partial_count += 1
+                            else:
+                                success_count += 1
                     else:
                         # decompyle3 erstellt die Datei selbst, wir müssen nur das Verzeichnis wechseln
                         os.chdir(root)
@@ -220,8 +229,8 @@ def decompile_and_move(extracted_dir, final_out_dir, python_version):
                             check=True, capture_output=True, text=True, encoding='utf-8', errors='ignore'
                         )
                         os.chdir(original_cwd)
+                        success_count += 1
                     
-                    success_count += 1
                 except (subprocess.CalledProcessError, FileNotFoundError) as e:
                     # print(f"Failed on {file}: {e.stderr if hasattr(e, 'stderr') else e}") # Uncomment for debug
                     fail_count += 1
@@ -229,7 +238,7 @@ def decompile_and_move(extracted_dir, final_out_dir, python_version):
                     if not is_pycdc:
                         os.chdir(original_cwd) # Nur für decompyle3 zurückwechseln
 
-    print(f"[INFO] Decompilation finished: {success_count} succeeded, {fail_count} failed.")
+    print(f"[INFO] Decompilation finished: {success_count} succeeded, {partial_count} partials, {fail_count} failed.")
     
     # Verschiebe alle erstellten .py Dateien
     for root, _, files in os.walk(extracted_dir):
@@ -241,7 +250,8 @@ def decompile_and_move(extracted_dir, final_out_dir, python_version):
                 os.makedirs(os.path.dirname(target_path), exist_ok=True)
                 shutil.move(src_path, target_path)
 
-    return success_count > 0
+    # Return True if we have at least some successes or partial successes
+    return (success_count + partial_count) > 0
 
 def cleanup(folder_path):
     """Deletes the temporary extracted folder."""
